@@ -17,7 +17,6 @@ class FlutterExifRotation {
       'rotateImage',
       <String, dynamic>{
         'path': path,
-        'save': false,
         'outputFormat': _getOutputFormatString(outputFormat)
       },
     ));
