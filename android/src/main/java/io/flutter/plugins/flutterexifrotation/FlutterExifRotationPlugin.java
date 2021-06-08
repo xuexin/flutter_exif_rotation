@@ -7,7 +7,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
-import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -45,13 +44,6 @@ public class FlutterExifRotationPlugin implements FlutterPlugin, MethodCallHandl
         boolean isPermissionGranted(String permissionName);
 
         void askForPermission(String[] permissions, int requestCode);
-    }
-
-    public static void registerWith(Registrar registrar) {
-        final MethodChannel channel = new MethodChannel(registrar.messenger(), "flutter_exif_rotation");
-        FlutterExifRotationPlugin flutterExifRotationPlugin = new FlutterExifRotationPlugin();
-        channel.setMethodCallHandler(flutterExifRotationPlugin);
-        registrar.addRequestPermissionsResultListener(flutterExifRotationPlugin);
     }
 
     @Override
@@ -153,7 +145,7 @@ public class FlutterExifRotationPlugin implements FlutterPlugin, MethodCallHandl
 
     public void launchRotateImage() {
         String photoPath = call.argument("path");
-        Boolean save = call.argument("save");
+        String outputFormat = call.argument("outputFormat");
 
         int orientation = 0;
         try {
@@ -187,15 +179,15 @@ public class FlutterExifRotationPlugin implements FlutterPlugin, MethodCallHandl
             File file = new File(photoPath); // the File to save , append increasing numeric counter to prevent files from getting overwritten.
 
             FileOutputStream fOut = new FileOutputStream(file);
-
-            rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fOut);
+            Bitmap.CompressFormat format;
+            if (outputFormat.equals("png")) {
+                format = Bitmap.CompressFormat.PNG;
+            } else {
+                format = Bitmap.CompressFormat.JPEG;
+            }
+            rotatedBitmap.compress(format, 100, fOut);
             fOut.flush(); // Not really required
             fOut.close(); // do not forget to close the stream
-
-            if (save) {
-                MediaStore.Images.Media.insertImage(activity.getContentResolver(), file.getAbsolutePath(), file.getName(), file.getName());
-            }
-
             result.success(file.getPath());
         } catch (IOException e) {
             result.error("error", "IOexception", null);

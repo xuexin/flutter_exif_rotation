@@ -20,35 +20,13 @@ class _MyAppState extends State<MyApp> {
 
   Future getImage() async {
     final image = await picker.getImage(source: ImageSource.gallery);
-    if (image != null && image.path != null) {
+    if (image != null) {
       File rotatedImage =
-          await FlutterExifRotation.rotateImage(path: image.path);
-
-      if (image != null) {
-        setState(() {
-          _image = rotatedImage;
-        });
-      }
+          await FlutterExifRotation.rotateImage(path: image.path, outputFormat: OutputFormat.PNG);
+      setState(() {
+        _image = rotatedImage;
+      });
     }
-  }
-
-  Future getImageAndSave() async {
-    final image = await picker.getImage(source: ImageSource.gallery);
-    if (image != null && image.path != null) {
-      File rotatedImage =
-          await FlutterExifRotation.rotateAndSaveImage(path: image.path);
-
-      if (image != null) {
-        setState(() {
-          _image = rotatedImage;
-        });
-      }
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
   }
 
   @override
@@ -64,11 +42,6 @@ class _MyAppState extends State<MyApp> {
               : new Image.file(_image!),
         ),
         persistentFooterButtons: <Widget>[
-          new FloatingActionButton(
-            onPressed: getImageAndSave,
-            tooltip: 'Pick Image and save',
-            child: new Icon(Icons.save),
-          ),
           new FloatingActionButton(
             onPressed: getImage,
             tooltip: 'Pick Image without saving',
