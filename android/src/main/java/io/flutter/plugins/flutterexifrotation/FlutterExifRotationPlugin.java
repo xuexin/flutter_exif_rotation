@@ -144,58 +144,73 @@ public class FlutterExifRotationPlugin implements FlutterPlugin, MethodCallHandl
     }
 
     public void launchRotateImage() {
-        String photoPath = call.argument("path");
-        String outputFormat = call.argument("outputFormat");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String photoPath = call.argument("path");
+                String outputFormat = call.argument("outputFormat");
 
-        int orientation = 0;
-        try {
-            ExifInterface ei = new ExifInterface(photoPath);
-            orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                int orientation = 0;
+                try {
+                    ExifInterface ei = new ExifInterface(photoPath);
+                    orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inPreferredConfig = Bitmap.Config.ARGB_8888;
 
-            Bitmap bitmap = BitmapFactory.decodeFile(photoPath, options);
+                    Bitmap bitmap = BitmapFactory.decodeFile(photoPath, options);
 
-            Bitmap rotatedBitmap = null;
-            switch (orientation) {
+                    Bitmap rotatedBitmap = null;
+                    switch (orientation) {
 
-                case ExifInterface.ORIENTATION_ROTATE_90:
-                    rotatedBitmap = rotate(bitmap, 90);
-                    break;
+                        case ExifInterface.ORIENTATION_ROTATE_90:
+                            rotatedBitmap = rotate(bitmap, 90);
+                            break;
 
-                case ExifInterface.ORIENTATION_ROTATE_180:
-                    rotatedBitmap = rotate(bitmap, 180);
-                    break;
+                        case ExifInterface.ORIENTATION_ROTATE_180:
+                            rotatedBitmap = rotate(bitmap, 180);
+                            break;
 
-                case ExifInterface.ORIENTATION_ROTATE_270:
-                    rotatedBitmap = rotate(bitmap, 270);
-                    break;
+                        case ExifInterface.ORIENTATION_ROTATE_270:
+                            rotatedBitmap = rotate(bitmap, 270);
+                            break;
 
-                case ExifInterface.ORIENTATION_NORMAL:
-                default:
-                    rotatedBitmap = bitmap;
+                        case ExifInterface.ORIENTATION_NORMAL:
+                        default:
+                            rotatedBitmap = bitmap;
+                    }
+
+                    final File file = new File(photoPath); // the File to save , append increasing numeric counter to prevent files from getting overwritten.
+
+                    FileOutputStream fOut = new FileOutputStream(file);
+                    Bitmap.CompressFormat format;
+                    if (outputFormat.equals("png")) {
+                        format = Bitmap.CompressFormat.PNG;
+                    } else {
+                        format = Bitmap.CompressFormat.JPEG;
+                    }
+                    rotatedBitmap.compress(format, 100, fOut);
+                    fOut.flush(); // Not really required
+                    fOut.close(); // do not forget to close the stream
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            result.success(file.getPath());
+                            call = null;
+                            result = null;
+                        }
+                    });
+                } catch (IOException e) {
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            result.error("error", "IOexception", null);
+                            call = null;
+                            result = null;
+                        }
+                    });
+                }
             }
-
-            File file = new File(photoPath); // the File to save , append increasing numeric counter to prevent files from getting overwritten.
-
-            FileOutputStream fOut = new FileOutputStream(file);
-            Bitmap.CompressFormat format;
-            if (outputFormat.equals("png")) {
-                format = Bitmap.CompressFormat.PNG;
-            } else {
-                format = Bitmap.CompressFormat.JPEG;
-            }
-            rotatedBitmap.compress(format, 100, fOut);
-            fOut.flush(); // Not really required
-            fOut.close(); // do not forget to close the stream
-            result.success(file.getPath());
-        } catch (IOException e) {
-            result.error("error", "IOexception", null);
-            e.printStackTrace();
-        } finally {
-            call = null;
-            result = null;
-        }
+        }).start();
 
     }
 
